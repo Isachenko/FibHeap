@@ -3,6 +3,9 @@
 #include <dijkstra.h>
 #include <chrono>
 #include <cmdParser.h>
+#include <fibonacciHeap.h>
+
+#define FIB_TEST
 
 using namespace ogdf;
 
@@ -14,25 +17,57 @@ EdgeArray<float> timeWeight(graph);
 EdgeArray<float> rangeWeight(graph);
 NodeArray<edge> predecessor(graph);
 NodeArray<float> distance(graph);
+int startIndex;
 node startV;
 
 //
 void printInfo() {
-    //printf("")
+    printf("Usage: test [argument] file\n");
+
 }
 
-void parseCmdOptions(int argc, char *argv[]) {
+//reurn treu if all parametrs are correct
+bool parseCmdOptions(int argc, char *argv[]) {
     if(cmdOptionExists(argv, argv+argc, "-h") || cmdOptionExists(argv, argv+argc, "-help")) {
-
+        printInfo();
+        return false;
     }
 
-    char * filename = getCmdOption(argv, argv + argc, "-f");
-
-    if (filename) {
-        // Do interesting things
-        // ...
+    if(cmdOptionExists(argv, argv+argc, "-pq")) {
+        if(cmdOptionExists(argv, argv+argc, "fib")) {
+            //Do with fibHeap;
+        } else if (cmdOptionExists(argv, argv+argc, "bin")){
+            //Do with binaryHeap;
+        }
+    } else {
+        printInfo();
+        return false;
     }
 
+    if(cmdOptionExists(argv, argv+argc, "-cost")) {
+        if(cmdOptionExists(argv, argv+argc, "time")) {
+            //Do with time;
+        } else if (cmdOptionExists(argv, argv+argc, "dist")){
+            //Do with dist;
+        }
+    } else {
+        printInfo();
+        return false;
+    }
+
+
+    if(cmdOptionExists(argv, argv+argc, "-start")) {
+        char *strStartV = getCmdOption(argv, argv + argc, "-f");
+        sscanf(strStartV, "%d", &startIndex);
+        if (strStartV == nullptr) {
+            return false;
+        }
+
+    } else {
+        printInfo();
+        return false;
+    }
+    return true;
 }
 
 //read graph from file
@@ -76,7 +111,24 @@ void printPredcessors() {
     }
 }
 
+void fibHeapTest() {
+    int n = 1000;
+    FibonacciHeap<int, int> fh;
+    for(int i = 0; i < n; ++i) {
+        fh.insert(i, i);
+    }
+    for(int i = 0; i < n; ++i) {
+        auto x = fh.findMin();
+        int ans = fh.prio(x);
+        printf("prior: %d\n", ans);
+        fh.delMin();
+    }
+}
+
 int main(int argc, char *argv[]) {
+#ifdef FIB_TEST
+    fibHeapTest();
+#else
     parseCmdOptions(argc, argv);
     parseFile(inFile);
     Dijkstra<float> djks;
@@ -87,6 +139,8 @@ int main(int argc, char *argv[]) {
     double dijkstraTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(finish-start).count() / 1000000;
     printf("time : %3.10lf s\n", dijkstraTime);
     //printPredcessors();
+#endif
+
 
     return 0;
 }
