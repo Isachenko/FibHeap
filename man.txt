@@ -1,0 +1,7 @@
+Usage: test [parameters] file   : run djikstra algorithm
+
+Parameters:
+    -h      or --help       : prints helpful information how to call the program
+    -pq     or --priorqueue : selects the priority queue [fib, ...]
+    -c      or --cost       : selects type of edge costs [time, dist]
+    -s      or --start      : ID of start node (default: 0 as specified above)
