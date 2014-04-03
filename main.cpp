@@ -7,8 +7,6 @@
 #include <bynaryHeap.h>
 #include <memory>
 
-//#define FIB_TEST
-
 using namespace ogdf;
 
 char* inFile;
@@ -26,18 +24,17 @@ enum PQ_TYPE {
 
 //----------------
 Graph graph;
-EdgeArray<float> timeWeight(graph);
-EdgeArray<float> rangeWeight(graph);
+EdgeArray<float> weight(graph);
 NodeArray<edge> predecessor(graph);
 NodeArray<float> dist(graph);
 node startV;
 
-//
+//prin usage fuide
 void printInfo() {
     printf("Usage: test [argument] file\n");
 }
 
-//reurn treu if all parametrs are correct
+//parse cmd params and return "true" if all params are correct
 bool parseCmdOptions(int argc, char *argv[]) {
     if (argc < 2) {
         printInfo();
@@ -98,8 +95,11 @@ void parseFile(const char* fileName) {
         float time, range;
         fscanf(inFile, "%d %d %f %f %d", &idU, &idV, &time, &range, &roadCategory);
         edge e = graph.newEdge(idToNode[idU], idToNode[idV]);
-        timeWeight[e] = time;
-        rangeWeight[e] = range;
+        if (costType == COST_TYPE_TIME) {
+            weight[e] = time;
+        } else {
+            weight[e] = range;
+        }
     }
 }
 
@@ -117,47 +117,24 @@ void printPredcessors() {
     }
 }
 
-void fibHeapTest() {
-    int n = 1000000;
-    typedef typename PriorityQueue<double, int>::item qItem;
-    std::unique_ptr<qItem[]> qpos( new qItem[n] );
-    PriorityQueue<double, int, std::less<double> > *pq = new FibonacciHeap<double, int, std::less<double> >();
-    for(int i = 0; i < n; ++i) {
-        auto itm = pq->insert(i, i);
-        qpos[i] = itm;
-    }
-    auto x = pq->findMin();
-    int ans = pq->prio(x);
-    //printf("prior: %d\n", ans);
-    pq->delMin();
-    for(int i = n - 1; i > 0; --i) {
-        pq->decPrio(qpos[i], 0);
-    }
-
-    for(int i = 0; i < n-1; ++i) {
-        auto x = pq->findMin();
-        int ans = pq->prio(x);
-        //printf("prior: %d\n", ans);
-        pq->delMin();
-    }
-    printf("end\n");
-}
-
+//main test function
 int main(int argc, char *argv[]) {
-    auto start = std::chrono::high_resolution_clock::now();
-#ifdef FIB_TEST
-    fibHeapTest();
-#else
     if(!parseCmdOptions(argc, argv)) {
         return 0 ;
     }
+    auto start = std::chrono::high_resolution_clock::now();
+
     parseFile(inFile);
     Dijkstra<float> djks;
     //dijkstra speed test
-    //FibonacciHeap<float, node> queue;
-    BynaryHeap<float, node> queue;
-    djks.call(graph, timeWeight, startV, predecessor, dist, queue);
-#endif
+    if (pqType == PQ_TYPE_FIB_HEAP) {
+        FibonacciHeap<float, node> queue;
+        djks.call(graph, weight, startV, predecessor, dist, queue);
+    } else {
+        BynaryHeap<float, node> queue;
+        djks.call(graph, weight, startV, predecessor, dist, queue);
+    }
+
     auto finish = std::chrono::high_resolution_clock::now();
     double dijkstraTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(finish-start).count() / 1000000;
     printf("time : %3.10lf s\n", dijkstraTime);
