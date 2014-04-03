@@ -18,11 +18,11 @@ using namespace ogdf;
 template<class T>
 class Dijkstra {
 public:
-    void call(const Graph &G, const EdgeArray<T> &weight, node s, NodeArray<edge> &predecessor, NodeArray<T> &distance) {
-        FibonacciHeap<T, node> queue;
+    void call(const Graph &G, const EdgeArray<T> &weight, node s, NodeArray<edge> &predecessor, NodeArray<T> &distance, PriorityQueue<T, node> &queue) {
         typedef typename PriorityQueue<T, node>::item qItem;
         std::unique_ptr<qItem[]> qpos( new qItem[G.numberOfNodes()] );
         NodeArray<int> vIndex(G);
+        NodeArray<bool> visited(G);
         T maxEdgeWeight = 0;
         int i = 0;
         node v;
@@ -40,8 +40,9 @@ public:
         forall_nodes(v, G)
         {
             vIndex[v] = i;
+            visited[v] = false;
             distance[v] = std::numeric_limits<T>::max() - maxEdgeWeight - 1;
-            predecessor[v] = 0; //?
+            predecessor[v] = nullptr; //?
             qItem itm = queue.insert(distance[v], v);
             qpos[i++] = itm;
         }
@@ -52,6 +53,10 @@ public:
         while (!queue.empty()) {
             v = queue.value(queue.findMin());
             queue.delMin();
+            if (visited[v]) {
+                break;
+            }
+            visited[v] = true;
             forall_adj_edges(e, v)
             {
                 node w = e->opposite(v);

@@ -4,70 +4,74 @@
 #include <chrono>
 #include <cmdParser.h>
 #include <fibonacciHeap.h>
-#include <priorityQueue.h>
+#include <bynaryHeap.h>
 #include <memory>
 
 //#define FIB_TEST
 
 using namespace ogdf;
 
-const char* inFile = "/home/isaac/Documents/OGDF/graphs/NV.tmp";
+char* inFile;
+int startIndex = 0;
+enum COST_TYPE{
+    COST_TYPE_TIME = 0,
+    COST_TYPE_DISTANCE
+} costType;
+
+enum PQ_TYPE {
+    PQ_TYPE_FIB_HEAP = 0,
+    PQ_TYPE_BIN_HEAP
+} pqType;
+
 
 //----------------
 Graph graph;
 EdgeArray<float> timeWeight(graph);
 EdgeArray<float> rangeWeight(graph);
 NodeArray<edge> predecessor(graph);
-NodeArray<float> distance(graph);
-int startIndex;
+NodeArray<float> dist(graph);
 node startV;
 
 //
 void printInfo() {
     printf("Usage: test [argument] file\n");
-
 }
 
 //reurn treu if all parametrs are correct
 bool parseCmdOptions(int argc, char *argv[]) {
+    if (argc < 2) {
+        printInfo();
+        return false;
+    }
+
+    inFile = argv[argc - 1];
+
+
     if(cmdOptionExists(argv, argv+argc, "-h") || cmdOptionExists(argv, argv+argc, "-help")) {
         printInfo();
         return false;
     }
 
     if(cmdOptionExists(argv, argv+argc, "-pq")) {
-        if(cmdOptionExists(argv, argv+argc, "fib")) {
-            //Do with fibHeap;
-        } else if (cmdOptionExists(argv, argv+argc, "bin")){
-            //Do with binaryHeap;
+        if(cmdOptionExists(argv, argv+argc, "bin")) {
+            pqType = PQ_TYPE_BIN_HEAP;
+        } else {
+            pqType = PQ_TYPE_FIB_HEAP;
         }
-    } else {
-        printInfo();
-        return false;
     }
 
     if(cmdOptionExists(argv, argv+argc, "-cost")) {
         if(cmdOptionExists(argv, argv+argc, "time")) {
-            //Do with time;
-        } else if (cmdOptionExists(argv, argv+argc, "dist")){
-            //Do with dist;
+            costType = COST_TYPE_TIME;
+        } else {
+            costType = COST_TYPE_DISTANCE;
         }
-    } else {
-        printInfo();
-        return false;
     }
 
 
     if(cmdOptionExists(argv, argv+argc, "-start")) {
-        char *strStartV = getCmdOption(argv, argv + argc, "-f");
+        char *strStartV = getCmdOption(argv, argv + argc, "-start");
         sscanf(strStartV, "%d", &startIndex);
-        if (strStartV == nullptr) {
-            return false;
-        }
-
-    } else {
-        printInfo();
-        return false;
     }
     return true;
 }
@@ -85,7 +89,7 @@ void parseFile(const char* fileName) {
         node v = graph.newNode(id);
         idToNode[id] = v;
     }
-    startV = idToNode[0];
+    startV = idToNode[startIndex];
 
     int edgeCount;
     fscanf(inFile, "%d", &edgeCount);
@@ -114,7 +118,7 @@ void printPredcessors() {
 }
 
 void fibHeapTest() {
-    int n = 10;
+    int n = 1000000;
     typedef typename PriorityQueue<double, int>::item qItem;
     std::unique_ptr<qItem[]> qpos( new qItem[n] );
     PriorityQueue<double, int, std::less<double> > *pq = new FibonacciHeap<double, int, std::less<double> >();
@@ -124,7 +128,7 @@ void fibHeapTest() {
     }
     auto x = pq->findMin();
     int ans = pq->prio(x);
-    printf("prior: %d\n", ans);
+    //printf("prior: %d\n", ans);
     pq->delMin();
     for(int i = n - 1; i > 0; --i) {
         pq->decPrio(qpos[i], 0);
@@ -133,28 +137,30 @@ void fibHeapTest() {
     for(int i = 0; i < n-1; ++i) {
         auto x = pq->findMin();
         int ans = pq->prio(x);
-        printf("prior: %d\n", ans);
+        //printf("prior: %d\n", ans);
         pq->delMin();
     }
     printf("end\n");
 }
 
 int main(int argc, char *argv[]) {
+    auto start = std::chrono::high_resolution_clock::now();
 #ifdef FIB_TEST
     fibHeapTest();
 #else
-    parseCmdOptions(argc, argv);
+    if(!parseCmdOptions(argc, argv)) {
+        return 0 ;
+    }
     parseFile(inFile);
     Dijkstra<float> djks;
     //dijkstra speed test
-    auto start = std::chrono::high_resolution_clock::now();
-    djks.call(graph, timeWeight, startV, predecessor, distance);
+    //FibonacciHeap<float, node> queue;
+    BynaryHeap<float, node> queue;
+    djks.call(graph, timeWeight, startV, predecessor, dist, queue);
+#endif
     auto finish = std::chrono::high_resolution_clock::now();
     double dijkstraTime = (double)std::chrono::duration_cast<std::chrono::microseconds>(finish-start).count() / 1000000;
     printf("time : %3.10lf s\n", dijkstraTime);
     //printPredcessors();
-#endif
-
-
     return 0;
 }

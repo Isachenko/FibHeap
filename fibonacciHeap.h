@@ -34,16 +34,17 @@ private:
             m_mark(false) {}
     };
     typedef std::shared_ptr<FibHeapItem> item;
+    typedef std::weak_ptr<FibHeapItem> weakItem;
     typedef typename PriorityQueue<PRIO, VALUE, CMP>::item baseItem;
     item m_min;
 
-    void checkAndSetIfLessThenMin(item v) {
+    void checkAndSetIfLessThenMin(item const &v) {
         if (this->m_cmp(v->m_prio, m_min->m_prio)) {
             m_min = v;
         }
     }
 
-    void pushVRightOfU(item v, item u) {
+    void pushVRightOfU(item const &v, item const &u) {
         v->m_right = u->m_right;
         v->m_left = u;
         v->m_right->m_left = v;
@@ -51,7 +52,7 @@ private:
         v->m_parent = u->m_parent;
     }
 
-    item pushItemToRootList(item v) {
+    void pushItemToRootList(item const &v) {
         v->m_parent = nullptr;
         if (!m_min) {
             m_min = v;
@@ -61,34 +62,29 @@ private:
             pushVRightOfU(v, m_min);
             checkAndSetIfLessThenMin(v);
         }
-        return m_min;
     }
 
     // min may be set wrong
-    item pushListToRightOfV(item begin, item end, item v) {
-        if (!v) {
-            v = begin;
-        } else {
-            begin->m_left = v;
-            end->m_right = v->m_right;
-            begin->m_left->m_right = begin;
-            end->m_right->m_left = end;
-        }
-        return v;
+    void pushListToRightOfV(item const &begin, item const &end, item const &v) {
+        begin->m_left = v;
+        end->m_right = v->m_right;
+        begin->m_left->m_right = begin;
+        end->m_right->m_left = end;
+
     }
 
-    void clearItem(item v) {
+    void cleanItem(item const &v) {
         v->m_left = nullptr;
         v->m_right = nullptr;
     }
 
-    void pop(item v) {
+    void pop(item const &v) {
         v->m_left->m_right = v->m_right;
         v->m_right->m_left = v->m_left;
     }
 
 
-    void setVAsChildOfU(item v, item u) {
+    void setVAsChildOfU(item const &v, item const &u) {
         pop(v);
         if (u->m_firsChild) {
             pushVRightOfU(v, u->m_firsChild);
@@ -101,7 +97,7 @@ private:
         v->m_parent = u;
     }
 
-    item unity(item v, item u) {
+    const item &unity(item const &v, item const &u) {
         if (this->m_cmp(v->m_prio, u->m_prio)) {
             setVAsChildOfU(u, v);
             return v;
@@ -120,10 +116,10 @@ private:
         for (size_t i = 0; i < maxRank; ++i) {
             rankToItem[i] = nullptr;
         }
-        item curItem = m_min;
+        item curItem(m_min);
+        item newMin(m_min);
         while (true) {
             size_t rank = curItem->m_rank;
-            //ToDo: check loop
             if ((rankToItem[rank] == curItem) || curItem->m_parent != nullptr) { // all roots have been gone
                 break;
             }
@@ -132,23 +128,20 @@ private:
                 curItem = unity(rankToItem[rank], curItem);
                 rankToItem[rank++] = nullptr;
             }
+            if (newMin->m_parent || this->m_cmp(curItem->m_prio, newMin->m_prio)) {
+                newMin = curItem;
+            }
             rankToItem[rank] = curItem;
             curItem = nextItem;
         }
         //set min
 
-        m_min = nullptr;
-        for (size_t i = 0; i < maxRank; ++i) {
-            curItem = rankToItem[i];
-            if (curItem && (!m_min || (this->m_cmp(curItem->m_prio, m_min->m_prio)))) {
-                m_min = curItem;
-            }
-        }
+        m_min = newMin;
     }
 
-    void tearOff(item v) {
-        item parent = v->m_parent;
-        if (parent) {
+    void tearOff(item const &v) {
+        if (v->m_parent) {
+            item parent(v->m_parent);
             item firstChild = parent->m_firsChild;
             if (firstChild == firstChild->m_right) {    // only one child
                 parent->m_firsChild = nullptr;
@@ -191,7 +184,7 @@ public:
 
 
     // decreases the priority of item to prio
-    void decPrio(baseItem v, const PRIO &prio) {
+    void decPrio(baseItem const &v, const PRIO &prio) {
         item u = std::dynamic_pointer_cast<FibHeapItem>(v);
         if (this->m_cmp(u->m_prio, prio)) {
             return;
@@ -234,7 +227,7 @@ public:
                 newMin = nullptr;
             }
         }
-        clearItem(m_min);
+        cleanItem(m_min);
         m_min = newMin;
         consolidate();
     }

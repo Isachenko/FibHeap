@@ -25,8 +25,8 @@ protected:
     };
     size_t m_size;
     CMP m_cmp;
-
 public:
+
     typedef std::shared_ptr<PriorityQueueItem> item;
 
     // constructs an empty heap with a given compare functor.
@@ -35,12 +35,12 @@ public:
     virtual ~PriorityQueue() {}
 
     // returns number of elements stored in the heap
-    size_t size() const {
+    virtual size_t size() const {
         return m_size;
     }
 
     // returns true if the heap is empty
-    bool empty() {
+    virtual bool empty() {
         if (0 == m_size) {
             return true;
         }
@@ -48,10 +48,10 @@ public:
     }
 
     // access to priority and value of an element
-    const PRIO &prio(item it) const {
+    virtual const PRIO &prio(item it) const {
         return it->m_prio;
     }
-    const VALUE &value(item it) const {
+    virtual const VALUE &value(item it) const {
         return it->m_value;
     }
     //VALUE &value(item it);
@@ -60,7 +60,7 @@ public:
     virtual item insert(const PRIO &prio, const VALUE &value) = 0;
 
     //decreases the priority of item to prio
-    virtual void decPrio(item, const PRIO &prio) = 0;
+    virtual void decPrio(item const &itm, const PRIO &prio) = 0;
 
     // deletes the current minimum
     virtual void delMin() = 0;
