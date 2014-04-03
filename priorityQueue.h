@@ -1,3 +1,11 @@
+/*
+* $Author: Isachenko Andrew $
+***************************************************************/
+
+#ifdef _MSC_VER
+#pragma once
+#endif
+
 #ifndef PRIORITYQUEUE_H
 #define PRIORITYQUEUE_H
 
@@ -26,10 +34,11 @@ protected:
     size_t m_size;
     CMP m_cmp;
 public:
-
+    /*! Inner presentation of priority queue item.*/
     typedef std::shared_ptr<PriorityQueueItem> item;
 
-    // constructs an empty heap with a given compare functor.
+    //! Constructor.
+    /*! constructs an empty heap with a given compare functor.*/
     explicit PriorityQueue(const CMP &cmp = CMP()) : m_size(0), m_cmp(cmp) {}
 
     virtual ~PriorityQueue() {}
@@ -56,16 +65,24 @@ public:
     }
     //VALUE &value(item it);
 
-    // inserts a new element
+    //! Insert.
+    /*! insert a new alement.
+        \return created item
+    */
     virtual item insert(const PRIO &prio, const VALUE &value) = 0;
 
-    //decreases the priority of item to prio
+    //! Decrease priority.
+    /*! decreases the priority of item to prio */
     virtual void decPrio(item const &itm, const PRIO &prio) = 0;
 
-    // deletes the current minimum
+    //! Delete Minimum
+    /*! deletes the current minimum */
     virtual void delMin() = 0;
 
-    // returns the minimum element
+    //! Find Minimum
+    /*! returns the minimum element
+        \return current min
+    */
     virtual item findMin() const = 0;
 
     //You may also add a copy constructor and assignment operator (both with and without move semantics) if you wish.

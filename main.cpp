@@ -1,15 +1,24 @@
+/*
+* $Author: Isachenko Andrew $
+***************************************************************/
+
+#ifdef _MSC_VER
+#pragma once
+#endif
+
 #include <stdio.h>
 #include <ogdf/basic/HashArray.h>
 #include <dijkstra.h>
 #include <chrono>
 #include <cmdParser.h>
 #include <fibonacciHeap.h>
-#include <bynaryHeap.h>
+#include <binaryHeap.h>
 #include <memory>
 
 using namespace ogdf;
 
 char* inFile;
+char* helpString;
 int startIndex = 0;
 enum COST_TYPE{
     COST_TYPE_TIME = 0,
@@ -29,9 +38,16 @@ NodeArray<edge> predecessor(graph);
 NodeArray<float> dist(graph);
 node startV;
 
+
 //prin usage fuide
 void printInfo() {
-    printf("Usage: test [argument] file\n");
+    printf("Usage: test [parameters] file\n\n");
+
+    printf("    - Parameters:\n");
+    printf("    -help(-h)   help\n");
+    printf("    -pq     selects the priority queue [bin, fib] fib will be used is error case\n");
+    printf("    -cost   selects type of edge costs [time, dist] dist will be used is error case\n");
+    printf("    -start  ID of start node (default: 0 as specified above)\n");
 }
 
 //parse cmd params and return "true" if all params are correct
@@ -131,7 +147,7 @@ int main(int argc, char *argv[]) {
         FibonacciHeap<float, node> queue;
         djks.call(graph, weight, startV, predecessor, dist, queue);
     } else {
-        BynaryHeap<float, node> queue;
+        BinaryHeap<float, node> queue;
         djks.call(graph, weight, startV, predecessor, dist, queue);
     }
 

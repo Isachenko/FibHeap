@@ -18,7 +18,13 @@ using namespace ogdf;
 template<class T>
 class Dijkstra {
 public:
-    void call(const Graph &G, const EdgeArray<T> &weight, node s, NodeArray<edge> &predecessor, NodeArray<T> &distance, PriorityQueue<T, node> &queue) {
+    // run Dijkstra SSSP algorithm
+    void call(const Graph &G,
+              const EdgeArray<T> &weight,
+              node s,
+              NodeArray<edge> &predecessor,
+              NodeArray<T> &distance,
+              PriorityQueue<T, node> &queue) {
         typedef typename PriorityQueue<T, node>::item qItem;
         std::unique_ptr<qItem[]> qpos( new qItem[G.numberOfNodes()] );
         NodeArray<int> vIndex(G);

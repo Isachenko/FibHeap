@@ -1,3 +1,11 @@
+/*
+* $Author: Isachenko Andrew $
+***************************************************************/
+
+#ifdef _MSC_VER
+#pragma once
+#endif
+
 #ifndef FIBONACCIHEAP_H
 #define FIBONACCIHEAP_H
 
@@ -17,7 +25,7 @@ private:
     private:
         friend class FibonacciHeap<PRIO, VALUE, CMP>;
 
-        size_t m_rank;
+        size_t m_rank; /*!<count of child  */
         std::shared_ptr<FibHeapItem> m_right;
         std::shared_ptr<FibHeapItem> m_left;
         std::shared_ptr<FibHeapItem> m_firsChild;
@@ -38,12 +46,16 @@ private:
     typedef typename PriorityQueue<PRIO, VALUE, CMP>::item baseItem;
     item m_min;
 
+    //! Check
+    /*! set element as min if its priority less*/
     void checkAndSetIfLessThenMin(item const &v) {
         if (this->m_cmp(v->m_prio, m_min->m_prio)) {
             m_min = v;
         }
     }
 
+    //! Push
+    /*! push single element to root list*/
     void pushVRightOfU(item const &v, item const &u) {
         v->m_right = u->m_right;
         v->m_left = u;
@@ -52,19 +64,22 @@ private:
         v->m_parent = u->m_parent;
     }
 
+    //! Push
+    /*! push single element to root list*/
     void pushItemToRootList(item const &v) {
-        v->m_parent = nullptr;
         if (!m_min) {
             m_min = v;
             m_min->m_right = m_min;
             m_min->m_left = m_min;
+            v->m_parent = nullptr;
         } else {
             pushVRightOfU(v, m_min);
             checkAndSetIfLessThenMin(v);
         }
     }
 
-    // min may be set wrong
+    //! PushList
+    /*! push list of element to right of item V*/
     void pushListToRightOfV(item const &begin, item const &end, item const &v) {
         begin->m_left = v;
         end->m_right = v->m_right;
@@ -73,17 +88,22 @@ private:
 
     }
 
+    //! Clean
+    /*! set reference on left and right on null*/
     void cleanItem(item const &v) {
         v->m_left = nullptr;
         v->m_right = nullptr;
     }
 
+    //! Pop
+    /*! Pop item v from list. Work onliy if list have more then one element*/
     void pop(item const &v) {
         v->m_left->m_right = v->m_right;
         v->m_right->m_left = v->m_left;
     }
 
-
+    //! Set
+    /*! Set item V as child of U*/
     void setVAsChildOfU(item const &v, item const &u) {
         pop(v);
         if (u->m_firsChild) {
@@ -97,6 +117,8 @@ private:
         v->m_parent = u;
     }
 
+    //! unity
+    /*! combine heaps trees rooted in V and U */
     const item &unity(item const &v, item const &u) {
         if (this->m_cmp(v->m_prio, u->m_prio)) {
             setVAsChildOfU(u, v);
@@ -107,6 +129,8 @@ private:
         }
     }
 
+    //! Consolidate
+    /*! consolidate the heap */
     void consolidate() {
         if (!m_min) {
             return;
@@ -139,6 +163,8 @@ private:
         m_min = newMin;
     }
 
+    //! Tear off
+    /*! Tear off child from parent and add it to root list */
     void tearOff(item const &v) {
         if (v->m_parent) {
             item parent(v->m_parent);
@@ -165,16 +191,21 @@ private:
         }
     }
 
-public:
-
-    // constructs an empty heap with a given compare functor.
+public:    
+    //! Constructor.
+    /*!
+    constructs an empty heap with a given compare functor.
+    */
     explicit FibonacciHeap(const CMP &cmp = CMP()) :
         PriorityQueue<PRIO, VALUE, CMP>(cmp),
         m_min(nullptr) { }
 
     //VALUE &value(item it);
 
-    // inserts a new element
+    //! Insert.
+    /*! insert a new alement.
+        \return created item
+    */
     baseItem insert(const PRIO &prio, const VALUE &value) {
         item newItem(std::make_shared<FibHeapItem>(prio, value));
         pushItemToRootList(newItem);
@@ -182,8 +213,8 @@ public:
         return newItem;
     }
 
-
-    // decreases the priority of item to prio
+    //! Decrease priority.
+    /*! decreases the priority of item to prio */
     void decPrio(baseItem const &v, const PRIO &prio) {
         item u = std::dynamic_pointer_cast<FibHeapItem>(v);
         if (this->m_cmp(u->m_prio, prio)) {
@@ -193,7 +224,8 @@ public:
         tearOff(u);
     }
 
-    // deletes the current minimum
+    //! Delete Minimum
+    /*! deletes the current minimum */
     void delMin() {
         if (!m_min) {
             return;
@@ -232,9 +264,18 @@ public:
         consolidate();
     }
 
-    // returns the minimum element
+    //! Find Minimum
+    /*! returns the minimum element
+        \return current min
+    */
     baseItem findMin() const {
         return m_min;
+    }
+
+    ~FibonacciHeap() {
+        while(!this->empty()) {
+            delMin();
+        }
     }
 
     //You may also add a copy constructor and assignment operator (both with and without move semantics) if you wish.

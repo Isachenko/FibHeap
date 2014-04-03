@@ -1,5 +1,13 @@
-#ifndef BYNARYHEAP_H
-#define BYNARYHEAP_H
+/*
+* $Author: Isachenko Andrew $
+***************************************************************/
+
+#ifdef _MSC_VER
+#pragma once
+#endif
+
+#ifndef BINARYHEAP_H
+#define BINARYHEAP_H
 
 #include <functional>
 #include <cmath>
@@ -11,13 +19,13 @@
 using namespace ogdf;
 
 template<class PRIO = int, class VALUE = int, class CMP = std::less<PRIO> >
-class BynaryHeap : public PriorityQueue<PRIO, VALUE, CMP>
+class BinaryHeap : public PriorityQueue<PRIO, VALUE, CMP>
 {
 private:
     class BinHeapItem : public PriorityQueue<PRIO, VALUE, CMP>::PriorityQueueItem
     {
     private:
-        friend class BynaryHeap<PRIO, VALUE, CMP>;
+        friend class BinaryHeap<PRIO, VALUE, CMP>;
     public:
         BinHeapItem(const PRIO &prio, const VALUE &value) :
             PriorityQueue<PRIO, VALUE, CMP>::PriorityQueueItem(prio, value) { }
@@ -42,7 +50,7 @@ private:
 
 public:
     // constructs an empty heap with a given compare functor.
-    explicit BynaryHeap(const CMP &cmp = CMP()) :
+    explicit BinaryHeap(const CMP &cmp = CMP()) :
         PriorityQueue<PRIO, VALUE, CMP>(cmp) { }
 
     //VALUE &value(item it);
@@ -78,7 +86,13 @@ public:
     // returns true if the heap is empty
     bool empty() {
         return m_queue.empty();
+    }    
+
+    ~BinaryHeap() {
+        while(!this->empty()) {
+            delMin();
+        }
     }
 };
 
-#endif // BYNARYHEAP_H
+#endif // BINARYHEAP_H
