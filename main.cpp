@@ -4,12 +4,14 @@
 #include <chrono>
 #include <cmdParser.h>
 #include <fibonacciHeap.h>
+#include <priorityQueue.h>
+#include <memory>
 
-#define FIB_TEST
+//#define FIB_TEST
 
 using namespace ogdf;
 
-const char* inFile = "/home/isaac/Documents/OGDF/graphs/TX.tmp";
+const char* inFile = "/home/isaac/Documents/OGDF/graphs/NV.tmp";
 
 //----------------
 Graph graph;
@@ -112,17 +114,29 @@ void printPredcessors() {
 }
 
 void fibHeapTest() {
-    int n = 1000;
-    FibonacciHeap<int, int> fh;
+    int n = 10;
+    typedef typename PriorityQueue<double, int>::item qItem;
+    std::unique_ptr<qItem[]> qpos( new qItem[n] );
+    PriorityQueue<double, int, std::less<double> > *pq = new FibonacciHeap<double, int, std::less<double> >();
     for(int i = 0; i < n; ++i) {
-        fh.insert(i, i);
+        auto itm = pq->insert(i, i);
+        qpos[i] = itm;
     }
-    for(int i = 0; i < n; ++i) {
-        auto x = fh.findMin();
-        int ans = fh.prio(x);
+    auto x = pq->findMin();
+    int ans = pq->prio(x);
+    printf("prior: %d\n", ans);
+    pq->delMin();
+    for(int i = n - 1; i > 0; --i) {
+        pq->decPrio(qpos[i], 0);
+    }
+
+    for(int i = 0; i < n-1; ++i) {
+        auto x = pq->findMin();
+        int ans = pq->prio(x);
         printf("prior: %d\n", ans);
-        fh.delMin();
+        pq->delMin();
     }
+    printf("end\n");
 }
 
 int main(int argc, char *argv[]) {

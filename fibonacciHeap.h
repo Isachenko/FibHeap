@@ -1,37 +1,47 @@
 #ifndef FIBONACCIHEAP_H
 #define FIBONACCIHEAP_H
 
-#include<functional>
-#include<cmath>
+#include <functional>
+#include <cmath>
+#include <priorityQueue.h>
+#include <memory>
 
 using namespace ogdf;
 
 template<class PRIO = int, class VALUE = int, class CMP = std::less<PRIO> >
-class FibonacciHeap {
+class FibonacciHeap : public PriorityQueue<PRIO, VALUE, CMP>
+{
 private:
-    class FibHeapItem
+    class FibHeapItem : public PriorityQueue<PRIO, VALUE, CMP>::PriorityQueueItem
     {
     private:
         friend class FibonacciHeap<PRIO, VALUE, CMP>;
 
-        PRIO m_prior;
-        VALUE m_value;
         size_t m_rank;
-        FibHeapItem* m_right;
-        FibHeapItem* m_left;
-        FibHeapItem* m_firsChild;
-        FibHeapItem* m_parent;
+        std::shared_ptr<FibHeapItem> m_right;
+        std::shared_ptr<FibHeapItem> m_left;
+        std::shared_ptr<FibHeapItem> m_firsChild;
+        std::shared_ptr<FibHeapItem> m_parent;
         bool m_mark;
-
-        FibHeapItem(const PRIO &prior, const VALUE &value) :
-            m_prior(prior), m_value(value), m_rank(0), m_right(nullptr),
-            m_left(nullptr), m_firsChild(nullptr), m_parent(nullptr), m_mark(false) {}
+    public:
+        FibHeapItem(const PRIO &prio, const VALUE &value) :
+            PriorityQueue<PRIO, VALUE, CMP>::PriorityQueueItem(prio, value),
+            m_rank(0),
+            m_right(nullptr),
+            m_left(nullptr),
+            m_firsChild(nullptr),
+            m_parent(nullptr),
+            m_mark(false) {}
     };
-    typedef FibHeapItem* item;
-    size_t m_size;
-    FibHeapItem* m_min;
-    CMP m_cmp;
+    typedef std::shared_ptr<FibHeapItem> item;
+    typedef typename PriorityQueue<PRIO, VALUE, CMP>::item baseItem;
+    item m_min;
 
+    void checkAndSetIfLessThenMin(item v) {
+        if (this->m_cmp(v->m_prio, m_min->m_prio)) {
+            m_min = v;
+        }
+    }
 
     void pushVRightOfU(item v, item u) {
         v->m_right = u->m_right;
@@ -49,9 +59,7 @@ private:
             m_min->m_left = m_min;
         } else {
             pushVRightOfU(v, m_min);
-            if (v->m_prior < m_min->m_prior) {
-                m_min = v;
-            }
+            checkAndSetIfLessThenMin(v);
         }
         return m_min;
     }
@@ -69,10 +77,16 @@ private:
         return v;
     }
 
+    void clearItem(item v) {
+        v->m_left = nullptr;
+        v->m_right = nullptr;
+    }
+
     void pop(item v) {
         v->m_left->m_right = v->m_right;
         v->m_right->m_left = v->m_left;
     }
+
 
     void setVAsChildOfU(item v, item u) {
         pop(v);
@@ -85,11 +99,10 @@ private:
         }
         u->m_rank += 1;
         v->m_parent = u;
-
     }
 
     item unity(item v, item u) {
-        if (v->m_prior < u->m_prior) {
+        if (this->m_cmp(v->m_prio, u->m_prio)) {
             setVAsChildOfU(u, v);
             return v;
         } else {
@@ -102,9 +115,9 @@ private:
         if (!m_min) {
             return;
         }
-        size_t maxRank = (size_t)log2(m_size) + 1;
+        size_t maxRank = (size_t)log2(this->m_size) + 2; //  ToDo: thik about it
         item rankToItem[maxRank];
-        for (int i = 0; i < maxRank; ++i) {
+        for (size_t i = 0; i < maxRank; ++i) {
             rankToItem[i] = nullptr;
         }
         item curItem = m_min;
@@ -123,61 +136,76 @@ private:
             curItem = nextItem;
         }
         //set min
+
+        m_min = nullptr;
         for (size_t i = 0; i < maxRank; ++i) {
             curItem = rankToItem[i];
-            if (curItem && (!m_min || (curItem->m_prior < m_min->m_prior))) {
+            if (curItem && (!m_min || (this->m_cmp(curItem->m_prio, m_min->m_prio)))) {
                 m_min = curItem;
             }
         }
     }
 
+    void tearOff(item v) {
+        item parent = v->m_parent;
+        if (parent) {
+            item firstChild = parent->m_firsChild;
+            if (firstChild == firstChild->m_right) {    // only one child
+                parent->m_firsChild = nullptr;
+            } else {                                    // more then one child
+                if (firstChild == v) {
+                    parent->m_firsChild = v->m_right;
+                }
+                pop(v);
+            }
+            pushVRightOfU(v, m_min);
+            checkAndSetIfLessThenMin(v);
+            v->m_mark = false;
+            parent->m_rank -= 1;
+            if (parent->m_mark) {
+                tearOff(parent);
+            } else {
+                parent->m_mark = true;
+            }
+        } else {
+            checkAndSetIfLessThenMin(v);
+        }
+    }
 
 public:
 
     // constructs an empty heap with a given compare functor.
-    explicit FibonacciHeap(const CMP &cmp = CMP()) : m_size(0), m_min(nullptr), m_cmp(cmp) {}
+    explicit FibonacciHeap(const CMP &cmp = CMP()) :
+        PriorityQueue<PRIO, VALUE, CMP>(cmp),
+        m_min(nullptr) { }
 
-    // returns number of elements stored in the heap
-    size_t size() const {
-        return m_size;
-    }
-
-    // returns true if the heap is empty
-    bool empty() {
-        if (0 == m_size) {
-            return false;
-        }
-        return true;
-    }
-
-    // access to priority and value of an element
-    const PRIO &prio(item it) const {
-        return it->m_prior;
-    }
-    const VALUE &value(item it) const {
-        return it->m_value;
-    }
     //VALUE &value(item it);
 
     // inserts a new element
-    item insert(const PRIO &prio, const VALUE &value) {
-        item newItem = new FibHeapItem(prio, value);
+    baseItem insert(const PRIO &prio, const VALUE &value) {
+        item newItem(std::make_shared<FibHeapItem>(prio, value));
         pushItemToRootList(newItem);
-        ++m_size;
+        this->m_size += 1;
         return newItem;
     }
 
-    // decreases the priority of item to prio
-//    void decPrio(item, const PRIO &prio) {
 
-//    }
+    // decreases the priority of item to prio
+    void decPrio(baseItem v, const PRIO &prio) {
+        item u = std::dynamic_pointer_cast<FibHeapItem>(v);
+        if (this->m_cmp(u->m_prio, prio)) {
+            return;
+        }
+        u->m_prio = prio;
+        tearOff(u);
+    }
 
     // deletes the current minimum
     void delMin() {
         if (!m_min) {
             return;
         }
-        --m_size;
+        this->m_size -= 1;
         item newMin;
         if (m_min->m_firsChild) { //if have child
             item firstChild = m_min->m_firsChild;
@@ -200,20 +228,19 @@ public:
             }
         } else {
             if (m_min->m_left != m_min) { // more then one root
-                m_min->m_left->m_right = m_min->m_right;
-                m_min->m_right->m_left = m_min->m_left;
+                pop(m_min);
                 newMin = m_min->m_left;
             } else {
                 newMin = nullptr;
             }
         }
-        delete m_min;
+        clearItem(m_min);
         m_min = newMin;
         consolidate();
     }
 
     // returns the minimum element
-    item findMin() const {
+    baseItem findMin() const {
         return m_min;
     }
 
